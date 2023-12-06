@@ -10,17 +10,23 @@ tr td {
 }
 
 #plain {
-	width:656px;
-	background: url(assets\plain.png) repeat-y;
+	width:655px;
+	background: url(assets/plain.png) repeat-y;
 	padding:0px 32px 16px 40px;
 }
 
 .plain-top {
-	background: url(assets\top.png) no-repeat;
+	background: url(assets/top.png) no-repeat;
 	padding-top:32px;
 }
 
 .plain-bar {
-	background: url(assets\bottom.png) no-repeat bottom;
+	background: url(assets/bottom.png) no-repeat bottom;
 	padding-bottom:32px;
 }
+
+body {
+	background-color: #F0F0F0;
+	margin: 0;
+	padding: 0;
+  }
