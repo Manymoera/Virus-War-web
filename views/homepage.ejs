@@ -15,8 +15,18 @@
     </style>
 </head>
 
-<body>
-    <a href="virus.html" class="btn">Переход по ссылке</a>
+<body class="page_start">
+    <div>
+        <% if (!gameStarted) { %>
+            <a href="/player1">
+                <button class="btn">Начать игру</button>
+            </a>
+        <% } else { %>
+            <a href="/player2">
+                <button class="btn">Присоединиться к игре</button>
+            </a>
+        <% } %>
+    </div>
 </body>
 
 </html>
