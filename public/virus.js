@@ -15,29 +15,41 @@
 */
 
 import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
-
 const socket = io("http://localhost:3000");
 
-function Counter() {
-  this.value = 0;
-}
-Counter.prototype.next = function () {
-  return this.value++;
-};
-Counter.prototype.make_null = function () {
-  return this.value = 0;
-};
-Counter.prototype.comp = function (val) {
-  if (this.value == val) {
-    return true;
-  }
-  else {
-    return false;
-  }
-};
+ socket.on('connect', () => {
+  console.log(`You connected with id: ${socket.id}`);
+ });
 
-function handle_turn_change() {
-  alert('made the move');
+socket.on('receive-table', (GameData) => {
+  //удаление старой таблицы перед получением новой
+  let tb = document.querySelector('tbody');
+  while (tb.childNodes.length) {
+    tb.removeChild(tb.childNodes[0]);
+  }
+  active_player = GameData.active_player;
+  flag = GameData.flag;
+  //получение таблицы другим клиентом
+  createTable(GameData.tableArr);
+  console.log(GameData.tableArr);
+  console.log(GameData.flag);
+  console.log(GameData.active_player);
+});
+
+function handle_turn_change(tableArrLocal, player) {
+  if(player == 'X') {
+    active_player = 'O';
+  } else if(player == 'O') {
+    active_player = 'X';
+  }
+  tableArr = tableArrLocal;
+  flag = false;
+  socket.emit('send-table', tableArr, true, active_player);
+  let tb = document.querySelector('tbody');
+  while (tb.childNodes.length) {
+    tb.removeChild(tb.childNodes[0]);
+  }
+  createTable(tableArr);
 }
 
 function check_victory(tableArr, player) {
@@ -79,58 +91,60 @@ function check_victory(tableArr, player) {
   }
 }
 
-function check_cell(tableArr, newCell, player, turn_count, i, j) {
-  if (player == 'X') {
+function check_cell(tableArr, newCell,i, j) {
+  console.log(`active player is ${active_player}`);
+  if (active_player == 'X') {
     for (let x = i - 1; x < i + 2; x++) {
       for (let y = j - 1; y < j + 2; y++) {
         if (tableArr[x][y] == 1 || tableArr[x][y] == 21) {
           if (tableArr[i][j] == 0) {
             newCell.innerHTML = '<img src="assets/oax_CX.gif">';
             tableArr[i][j] = 1;
-            check_victory(tableArr, player, i, j);
-            turn_count.next();
+            check_victory(tableArr, active_player, i, j);
+            turn_count++;
           }
           else if (tableArr[i][j] == 2) {
             newCell.innerHTML = '<img src="assets/oax_CP.gif">';
             tableArr[i][j] = 21;
-            check_victory(tableArr, player, i, j);
-            turn_count.next();
+            check_victory(tableArr, active_player, i, j);
+            turn_count++;
           }
         }
       }
     }
   }
-  else if (player == 'O') {
+  else if (active_player == 'O') {
     for (let x = i - 1; x < i + 2; x++) {
       for (let y = j - 1; y < j + 2; y++) {
         if (tableArr[x][y] == 2 || tableArr[x][y] == 12) {
           if (tableArr[i][j] == 0) {
             newCell.innerHTML = '<img src="assets/oax_CO.gif">';
             tableArr[i][j] = 2;
-            check_victory(tableArr, player, i, j);
-            turn_count.next();
+            check_victory(tableArr, active_player, i, j);
+            turn_count++;
           }
           else if (tableArr[i][j] == 1) {
             newCell.innerHTML = '<img src="assets/oax_CY.gif">';
             tableArr[i][j] = 12;
-            check_victory(tableArr, player, i, j);
-            turn_count.next();
+            check_victory(tableArr, active_player, i, j);
+            turn_count++;
           }
         }
       }
     }
   }
-  if (turn_count.comp(3)) {
-    handle_turn_change();
-    turn_count.make_null();
+  if (turn_count == 3) {
+    handle_turn_change(tableArr, active_player);
+    turn_count = 0;
+    
   }
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  createTable(tableArr, turn_count, active_player);
+  createTable(tableArr);
 });
 
-function createTable(tableArr, turn_count, active_player) {
+function createTable(tableArr) {
   let table = document.getElementById('game_field');
   let tbody = table.getElementsByTagName('tbody')[0];
   for (let i = 1; i < tableArr.length - 1; i++) {
@@ -152,16 +166,17 @@ function createTable(tableArr, turn_count, active_player) {
       else if (tableArr[i][j] == 21) {
         newCell.innerHTML = '<img src="assets/oax_CP.gif">';
       }
-      newCell.onclick = function () {
-        check_cell(tableArr, newCell, active_player, turn_count, i, j);
-      };
+      if(flag){
+        newCell.onclick = function () {
+          check_cell(tableArr, newCell, i, j);
+        };  
+      } else {newCell.onclick = function () {};}
       row.appendChild(newCell);
     }
     tbody.appendChild(row);
   }
 }
 
-var parent_table = document.getElementById('table-container');
 var tableArr = [
   [3, 3, 3, 3, 3, 3, 3, 3],
   [3, 0, 0, 0, 0, 0, 1, 3],
@@ -172,6 +187,6 @@ var tableArr = [
   [3, 2, 0, 0, 0, 0, 0, 3],
   [3, 3, 3, 3, 3, 3, 3, 3],
 ];
-var player_figures = ['X', 'O'];
-var active_player = player_figures[0];
-var turn_count = new Counter();
+var active_player = 'O';
+var turn_count = 0;
+var flag = true;

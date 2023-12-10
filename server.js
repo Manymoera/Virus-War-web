@@ -5,8 +5,17 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const port = 3000;
 
-io.on('connection', socket => {
+io.on('connection', (socket) => {
   console.log(socket.id);
+  socket.on('send-table', (tableArr, flag, active_player) => {
+    socket.broadcast.emit('receive-table', {tableArr, flag, active_player});
+    console.log(tableArr);
+    console.log("--------------------");
+    console.log(flag);
+    console.log("--------------------");
+    console.log(active_player);
+    console.log("--------------------");
+  });
 });
 
 app.use(session({

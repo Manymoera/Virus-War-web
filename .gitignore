@@ -42,9 +42,6 @@ package-lock.json
 #Project files
 [Bb]uild/
 [Rr]es/
-[Nn]ode_modules/
-[Aa]ssets/
-[Nn]ode_modules/
 
 # Other
 .vscode/
