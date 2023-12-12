@@ -17,9 +17,9 @@
 import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
 const socket = io("http://localhost:3000");
 
- socket.on('connect', () => {
+socket.on('connect', () => {
   console.log(`You connected with id: ${socket.id}`);
- });
+});
 
 socket.on('receive-table', (GameData) => {
   //удаление старой таблицы перед получением новой
@@ -28,22 +28,39 @@ socket.on('receive-table', (GameData) => {
     tb.removeChild(tb.childNodes[0]);
   }
   active_player = GameData.active_player;
+  tableArr = GameData.tableArr;
   flag = GameData.flag;
+  document.getElementById('giveUpBtn').disabled = false;
   //получение таблицы другим клиентом
-  createTable(GameData.tableArr);
+  createTable(tableArr);
   console.log(GameData.tableArr);
   console.log(GameData.flag);
   console.log(GameData.active_player);
 });
 
+socket.on('get_end_of_game', winner => {
+  if (winner == 'X') {
+    winText.innerHTML = 'Crosses won';
+  } else if (winner == 'O') {
+    winText.innerHTML = 'Circles won';
+  }
+  flag = false;
+  let tb = document.querySelector('tbody');
+  while (tb.childNodes.length) {
+    tb.removeChild(tb.childNodes[0]);
+  }
+  createTable(tableArr);
+});
+
 function handle_turn_change(tableArrLocal, player) {
-  if(player == 'X') {
+  if (player == 'X') {
     active_player = 'O';
-  } else if(player == 'O') {
+  } else if (player == 'O') {
     active_player = 'X';
   }
   tableArr = tableArrLocal;
   flag = false;
+  document.getElementById('giveUpBtn').disabled = true;
   socket.emit('send-table', tableArr, true, active_player);
   let tb = document.querySelector('tbody');
   while (tb.childNodes.length) {
@@ -52,23 +69,11 @@ function handle_turn_change(tableArrLocal, player) {
   createTable(tableArr);
 }
 
-function check_victory(tableArr, player) {
-  let av_count = 0;
+function check_victory(tableArr) {
   let cir_count = 0;
   let cross_count = 0;
   for (let i = 1; i < tableArr.length - 1; i++) {
     for (let j = 1; j < tableArr[i].length - 1; j++) {
-      if ((player == 'X' && tableArr[i][j] == 1) ||
-        (player == 'O' && tableArr[i][j] == 2)) {
-        for (let x = i - 1; x < i + 2; x++) {
-          for (let y = j - 1; y < j + 2; y++) {
-            if ((player == 'X' && (tableArr[x][y] == 0 || tableArr[x][y] == 2 || tableArr[x][y] == 21)) ||
-              (player == 'O' && (tableArr[x][y] == 0 || tableArr[x][y] == 1 || tableArr[x][y] == 12))) {
-              av_count++;
-            }
-          }
-        }
-      }
       if (tableArr[i][j] == 2) {
         cir_count++;
       }
@@ -77,21 +82,17 @@ function check_victory(tableArr, player) {
       }
     }
   }
-  if (av_count == 0) {
-    alert('win');
-    return;
-  }
-  else if (cir_count == 0) {
-    alert('crosses win');
+  if (cir_count == 0) {
+    handle_end_of_game('X');
     return;
   }
   else if (cross_count == 0) {
-    alert('circles win');
+    handle_end_of_game('O');
     return;
   }
 }
 
-function check_cell(tableArr, newCell,i, j) {
+function check_cell(tableArr, newCell, i, j) {
   console.log(`active player is ${active_player}`);
   if (active_player == 'X') {
     for (let x = i - 1; x < i + 2; x++) {
@@ -142,6 +143,7 @@ function check_cell(tableArr, newCell,i, j) {
 
 document.addEventListener("DOMContentLoaded", function () {
   createTable(tableArr);
+  socket.emit('game_is_started', true);
 });
 
 function createTable(tableArr) {
@@ -166,16 +168,43 @@ function createTable(tableArr) {
       else if (tableArr[i][j] == 21) {
         newCell.innerHTML = '<img src="assets/oax_CP.gif">';
       }
-      if(flag){
+      if (flag) {
         newCell.onclick = function () {
           check_cell(tableArr, newCell, i, j);
-        };  
-      } else {newCell.onclick = function () {};}
+        };
+      } else { newCell.onclick = function () { }; }
       row.appendChild(newCell);
     }
     tbody.appendChild(row);
   }
 }
+
+function handle_end_of_game(winner) {
+  if (winner == 'X') {
+    winText.innerHTML = 'Crosses won';
+  } else if (winner == 'O') {
+    winText.innerHTML = 'Circles won';
+  }
+  flag = false;
+  let tb = document.querySelector('tbody');
+  while (tb.childNodes.length) {
+    tb.removeChild(tb.childNodes[0]);
+  }
+  createTable(tableArr);
+  socket.emit('set_end_of_game', winner);
+}
+
+let giveUpButton = document.getElementById('giveUpBtn');
+let winText = document.getElementById('game_res');
+giveUpButton.addEventListener('click', () => {
+  let winner;
+  if (active_player == 'O') {
+    winner = 'X';
+  } else if (active_player == 'X') {
+    winner = 'O';
+  }
+  handle_end_of_game(winner);
+});
 
 var tableArr = [
   [3, 3, 3, 3, 3, 3, 3, 3],
